@@ -1,7 +1,7 @@
 #-*- acoding:utf-8 -*-
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask.ext.login import UserMixin
+from flask.ext.login import UserMixin, AnonymousUserMixin
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
@@ -19,6 +19,14 @@ class User(UserMixin, db.Model):
 	email = db.Column(db.String(64), unique = True, index = True)
 	password_hash = db.Column(db.String(128))
 	confirmed = db.Column(db.Boolean, default = False)
+	#初始化用户并赋予权限，如果基类没有进行权限赋值，那么这里进行判断，如果邮箱地址和本地的FLASKY_MAIL_ADMIN相同，则赋值为管理员；否则默认赋值为普通用户
+	def __init__(self, **kwargs):
+		super(User, self).__init__(**kwargs)
+		if self.role is None:
+			if self.email == current_app.config['FLASKY_MAIL_ADMIN'] or "861008761@qq.com":
+				self.role = Role.query.filter_by(permissions = 0xff).first()
+			if self.role is None:
+				self.role = Role.query.filter_by(default = True).first()
 	@property
 	def password(self):
 		raise AttributeError('password is not a readable attribute')
@@ -60,11 +68,53 @@ class User(UserMixin, db.Model):
 		if self.query.filter_by(email = address).first() is not None:
 			return None
 		return data.get('address')
+	#检查用户是否具有某种权限
+	def can(self, permissions):
+		return self.role is not None and (permissions & self.role.permissions) == permissions
+	def is_administrator(self):
+		return self.can(Permission.ADMINISTER)
 
 class Role(db.Model):
 	__tablename__ = "roles"
 	id = db.Column(db.Integer, primary_key = True)
 	name = db.Column(db.String(64), unique = True)
+	default = db.Column(db.Boolean, default = False, index = True)
+	permissions = db.Column(db.Integer)
+	@staticmethod
+	def insert_role():
+		roles = {
+			'User' : (Permission.FOLLOW | Permission.COMMENT | Permission.WRITE_ARTICLES, True), 
+			'Moderator' : (Permission.FOLLOW | Permission.COMMENT | Permission.WRITE_ARTICLES | Permission.MODERATE_COMMENTS, False), 
+			'Administrator' : (0xff, False)
+		}
+		for r in roles:
+			role = Role.query.filter_by(name = r).first()
+			if role is None:
+				role = Role(name = r)
+			role.permissions = roles[r][0]
+			role.default = roles[r][1]
+			db.session.add(role)
+		db.session.commit()
 	def __repr__(self):
 		return '<role %s>' % self.name
 	users = db.relationship('User', backref = 'role', lazy = 'dynamic')
+
+
+class Permission:
+	FOLLOW = 0x01
+	COMMENT = 0x02
+	WRITE_ARTICLES = 0x04
+	MODERATE_COMMENTS = 0x08
+	ADMINISTER = 0x80
+
+class AnonymousUser(AnonymousUserMixin):
+	def can(self, permissions):
+		return False
+	def is_administrator(self):
+		return False
+login_manager.anonymous_user = AnonymousUser#好奇，不用加()的吗
+
+
+
+
+

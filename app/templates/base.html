@@ -18,20 +18,25 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">Flasky</a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">首页</a>
         </div>
 
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li><a href="{{ url_for('main.index') }}">主页</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
                 {% if current_user.is_authenticated %}
-                    <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
-                    <li><a href="{{ url_for('auth.modifypwd') }}">密码重置</a></li>
-                    <li><a href="{{ url_for('auth.changeemail') }}">更换邮箱</a></li>
+                    <li class = "dropdown">
+                        <a href="#" class = "dropdown-toggle" data-toggle = "dropdown">账号信息 <b class = "caret"></b></a>
+                            <ul class = "dropdown-menu">
+                                <li><a href="{{ url_for('auth.modifypwd') }}">密码重置</a></li>
+                                <li><a href="{{ url_for('auth.changeemail') }}">更换邮箱</a></li>
+                                <li><a href="{{ url_for('auth.logout') }}">注销</a></li>
+                            </ul>
+                    </li>
                 {% else %}
-                    <li><a href="{{ url_for('auth.login') }}">Log In</a></li> 
+                    <li><a href="{{ url_for('auth.login') }}">登录</a></li> 
                 {% endif %}
             </ul>
         </div>
