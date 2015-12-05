@@ -62,6 +62,8 @@ def confirm(token):
 #对一些没有确认的用户进行限制，以及引导其再次确认
 @auth.before_app_request
 def before_request():
+	if current_user.is_authenticated:
+		current_user.ping()
 	if current_user.is_authenticated \
 		and not current_user.confirmed \
 		and request.endpoint[:5] != 'auth.' \
@@ -116,6 +118,8 @@ def resetquest():
 			token = user.generate_confirmation_token()
 			send_email(form.email.data, 'Reset your account', '/auth/email/reset', user = user, token = token)
 			flash('A confirmation email has been sent to your email')
+		else:
+			flash('your email address have not registered yet')
 		#return redirect(url_for('main.index'))
 	return render_template('auth/resetquest.html', form = form)
 
@@ -148,25 +152,24 @@ def changeemail():
 	form = ChangeEmailForm()
 	if form.validate_on_submit():
 		user = User.query.filter_by(email = current_user.email).first()
-		if user.verify_password(form.password.data):
-			token = user.generate_confirmationwithaddress_token(address = form.newemail.data)
-			send_email(form.newemail.data, 'Confirm your new email address', '/auth/email/changeemail', user = user, token = token)
-			flash('A confirmation email has been sent to your new email address!')
+		if User.query.filter_by(email = form.newemail.data).first():
+			flash('this email address already registered, please use another one')
 		else:
-			flash('Invalid password')
+			if user.verify_password(form.password.data):
+				token = user.generate_confirmationwithaddress_token(address = form.newemail.data)
+				send_email(form.newemail.data, 'Confirm your new email address', '/auth/email/changeemail', user = user, token = token)
+				flash('A confirmation email has been sent to your new email address!')
+			else:
+				flash('Invalid password')
 	return render_template('auth/changeemail.html', form = form)
 
 @auth.route('/newemail/<token>')
 @login_required
 def newemail(token):
 	user = User.query.filter_by(email = current_user.email).first()
-	email_address = user.confirm_address(token)
-	if email_address is None:
+	if user.confirm_address(token) is False:
 		flash('Confirmation failed')
 	else:
-		user.email = email_address
-		db.session.add(user)
-		db.session.commit()
 		flash('Your email address is changed, please log in with new email address!')
 		logout_user()
 	return redirect(url_for('auth.login'))

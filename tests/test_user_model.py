@@ -51,6 +51,9 @@ class UserModelTest(unittest.TestCase):
 		self.assertTrue(u2.is_administrator())
 		self.assertTrue(u2.can(Permission.MODERATE_COMMENTS))
 
+		self.assertTrue(u2.is_administrator())
+		self.assertFalse(u.is_administrator())
+
 	def test_anonymous_user(self):
 		u = AnonymousUser()
 		self.assertFalse(u.can(Permission.COMMENT))

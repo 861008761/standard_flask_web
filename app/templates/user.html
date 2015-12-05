@@ -1,22 +1,62 @@
 {% extends "base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
+{% import '_macros.html' as macros %}
 
-{% block title %} user {% endblock %}
+{% block title %} {{ user.username }}的个人信息 {% endblock %}
 
 {% block page_content %}
-	<div>
-		<h1>user is {{ name }}</h1>
-		{% if known %}
-			<p>old one</p>
-		{% else %}
-			<p>new one</p>
-		{% endif %}
+	<div class="page-header">
+		<h1>{{ user.username }}</h1>
+		<img class="img-rounded profile-thumbnail" src="{{ user.gravatar(size=256) }}">
+		<div class = "profile-header">
+			
+			{% if user.name or user.location %}
+				<p>
+					{% if user.name %}
+						尊姓大名：{{ user.name }}<br>
+					{% endif %}
+					{% if user.location %}
+						宇宙坐标：<a href="http://maps.baidu.com/?q={{ user.location }}">{{ user.location }}</a>
+					{% endif %}
+				</p>
+			{% endif %}
+			{% if current_user.is_administrator() %}
+				<p>
+					偶的油箱：<a href="mailto:{{ user.email }}">{{ user.email }}</a>
+				</p>
+			{% endif %}
+			{% if user.about_me %}
+				<p>
+					有关于我：{{ user.about_me }}
+				</p>
+			{% endif %}
+			<p>
+	             注册时间：{{ moment(user.member_since).format('L') }}.<br>
+	             上次登录：{{ moment(user.last_seen).fromNow() }}.
+	        </p>
+
+	        {% if user == current_user %}
+				<a  href="{{ url_for('.edit_profile') }}">点我编辑个人资料^_^ </a>
+			{% endif %}
+
+			<br>
+			{% if current_user.is_administrator() %}   <!-- 注意点：调用这个函数 is_administrator 需要加括号()，切记啊 -->
+				<a class = "btn btn-danger" href="{{ url_for('.edit_profile_admin', id = user.id) }}">管理员编辑用户资料</a>
+			{% endif %}
+
+	        <!-- <p>
+	        	<a href="{{ url_for('.edit_profile') }}">点我编辑个人资料^_^</a>
+	        </p> -->
+	        <!-- 链接外层的条件语句能确保只有当用户查看自己的资料页面时才显示这个链接。 -->
+	        <!--  -->
 	</div>
+</div>
 
-	{{ wtf.quick_form(form) }}
+{% include '_posts.html' %}
 
-	<p>
-		<p>time is {{ moment(current_time).format('LLL') }}.</p>
-		<p>That was {{ moment(current_time).fromNow(refresh=True) }}.</p>
-	</p>
+{% if pagination %}
+<div class="pagination">
+    {{ macros.pagination_widget(pagination, '.user', username = user.username) }}
+</div>
+{% endif %}
+
 {% endblock %}
