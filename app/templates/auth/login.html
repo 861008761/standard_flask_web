@@ -1,26 +1,23 @@
 {% extends "base.html" %}
-{% import "Bootstrap/wtf.html" as wtf %}
+{% import "bootstrap/wtf.html" as wtf %}
 
-{% block title %}Flask - log{% endblock %}
+{% block title %}登录{% endblock %}
 
 {% block page_content %}
 
 <div class = "page-header">
-	<h1>Login</h1>
-	<p>
-    New user?
-    <a href="{{ url_for('auth.register') }}">Click here to register</a>
-	</p>
-
-	<p>
-    Forgot password?
-    <a href="{{ url_for('auth.resetquest') }}">Click here to reset password</a>
-	</p>
-
+	<h1>登录</h1>
 </div>
-
-<div>
+	<div>
 	{{ wtf.quick_form(form) }}
-</div>
+	</div>
+	<p>
+    新用户?
+    <a href="{{ url_for('auth.register') }}">点击这里注册^_^</a>
+	</p>
 
+	<p>
+    忘记密码?
+    <a href="{{ url_for('auth.resetquest') }}">点击这里重置密码^_^</a>
+	</p>
 {% endblock %}

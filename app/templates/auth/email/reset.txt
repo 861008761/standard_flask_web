@@ -1,13 +1,13 @@
-Dear {{ user.username }},
+亲爱的 {{ user.username }},
 
-Welcome to Flasky!
+欢迎来到 杨超的微博!
 
-To set your new password please click on the following link:
+如果您需要修改密码请点击下面的链接:
 
 {{ url_for('auth.reset', token=token, _external=True) }}
 
-Sincerely,
+真诚地,
 
-The Flasky Team
+杨超童鞋
 
-Note: replies to this email address are not monitored.
+注意: 请不用回复这个邮件！

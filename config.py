@@ -16,6 +16,7 @@ class Config:
 	FLASKY_MAIL_SENDER = '55617@163.com'
 	FLASKY_MAIL_ADMIN = os.environ.get('FLASKY_ADMIN') or '861008761@qq.com'
 	FALSKY_POSTS_PER_PAGE = 20
+	FLASKY_COMMENTS_PER_PAGE = 10
 	@staticmethod
 	def init_app(app):
 		pass

@@ -1,8 +1,8 @@
-<p>Dear {{ user.username }},</p>
-<p>Welcome to <b>Flasky</b>!</p>
-<p>To set your new password please <a href="{{ url_for('auth.reset', token=token, _external=True) }}">click here</a>.</p>
-<p>Alternatively, you can paste the following link in your browser's address bar:</p>
+<p>亲爱的 {{ user.username }},</p>
+<p>欢迎来到 <b>杨超的微博</b>!</p>
+<p>如果您需要修改密码请 <a href="{{ url_for('auth.reset', token=token, _external=True) }}">点击这里</a>.</p>
+<p>或者, 你可以把下面的链接复制到浏览器的地址栏访问:</p>
 <p>{{ url_for('auth.reset', token=token, _external=True) }}</p>
-<p>Sincerely,</p>
-<p>The Flasky Team</p>
-<p><small>Note: replies to this email address are not monitored.</small></p>
+<p>真诚地,</p>
+<p>杨超童鞋</p>
+<p><small>注意: 请不用回复这个邮件！</small></p>

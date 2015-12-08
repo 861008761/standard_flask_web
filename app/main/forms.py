@@ -1,3 +1,4 @@
+#-*- acoding:utf-8 -*-
 from flask.ext.wtf import Form
 from wtforms import StringField, SubmitField, TextAreaField, BooleanField, SelectField
 from wtforms.validators import Required, Length, Email, Regexp
@@ -6,28 +7,28 @@ from wtforms import ValidationError
 from flask.ext.pagedown.fields import PageDownField
 
 class NameForm(Form):
-	name = StringField('what\'s your name?', validators = [Required()])
-	submit = SubmitField('Submit')
+	name = StringField(u'姓名?', validators = [Required(u'不能为空')])
+	submit = SubmitField(u'提交')
 
 class EditProfileForm(Form):
-	real_name = StringField('Real name', validators = [Length(0,64)])
-	location = StringField('Location', validators = [Length(0,64)])
-	about_me = TextAreaField('About me')
-	submit = SubmitField('Submit')
+	real_name = StringField(u'真实姓名', validators = [Length(0,64, message = u'长度为0到64位')])
+	location = StringField(u'所在地', validators = [Length(0,64, message = u'长度为0到64位')])
+	about_me = TextAreaField(u'关于我')
+	submit = SubmitField(u'提交')
 
 class EditProfileAdminForm(Form):
-	email = StringField('Email', validators = [Required(), Length(1,64), Email()])
-	username = StringField('Username', validators = [Required(), Length(1,64), 
+	email = StringField(u'邮箱地址', validators = [Required(u'不能为空'), Length(1,64, message = u'长度为1到64位'), 
+		Email(u'邮箱地址格式错误')])
+	username = StringField(u'用户名', validators = [Required(u'不能为空'), Length(1,64, message = u'长度为1到64位'), 
 		Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0, 
-			'Usernames must have only letters, '
-			'numbers, dots or underscores')])
-	confirm = BooleanField('Confirmed')
-	role = SelectField('Role', coerce = int)
+			u'用户名必须只包含字母,数字,点或者下划线并以字母开头')])
+	confirmed = BooleanField('Confirmed')
+	role = SelectField(u'用户角色', coerce = int)
 
-	name = StringField('Real name', validators = [Length(0,64)])
-	location = StringField('Location', validators = [Length(0,64)])
-	about_me = TextAreaField('About me')
-	submit = SubmitField('Submit')
+	name = StringField(u'真实姓名', validators = [Length(0,64, message = u'长度为0到64位')])
+	location = StringField(u'所在地', validators = [Length(0,64, message = u'长度为0到64位')])
+	about_me = TextAreaField(u'关于我')
+	submit = SubmitField(u'提交')
 
 	def __init__(self, user, *args, **kwargs):
 		super(EditProfileAdminForm, self).__init__(*args, **kwargs)
@@ -35,17 +36,19 @@ class EditProfileAdminForm(Form):
 		self.user = user
 
 	def validate_email(self, field):
-		if self.email.data != self.user.email and User.query.filter_by(email = self.email.data):
-			raise ValidationError('email address already in use')
+		if self.email.data != self.user.email and User.query.filter_by(email = self.email.data).first():
+			raise ValidationError(u'邮箱地址已被注册')
 	def validate_username(self, field):
-		if self.username.data != self.user.username and User.query.filter_by(username = self.username.data):
-			raise ValidationError('username has been registered')
+		if self.username.data != self.user.username and User.query.filter_by(username = self.username.data).first():
+			raise ValidationError(u'用户名已被注册')
 
 class PostForm(Form):
-	body = PageDownField('What\'s in your mind?', validators = [Required()])
-	submit = SubmitField('submit')
+	body = PageDownField(u'缩点什么吧?', validators = [Required(u'不能为空')])
+	submit = SubmitField(u'发送')
 
-
+class CommentForm(Form):
+	body = StringField('', validators = [Required(u'不能为空')])
+	submit = SubmitField(u'发送')
 
 
 

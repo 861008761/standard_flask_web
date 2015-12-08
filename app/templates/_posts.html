@@ -10,15 +10,42 @@
             <div class="post-date">
                 {{ moment(post.timestamp).fromNow() }}
             </div>
+            <!-- 加博客作者 -->
             <div class="post-author">
                 <a href="{{ url_for('.user', username = post.author.username) }}">{{ post.author.username }}</a>
             </div>
+            <!-- 加博客正文 -->
             <div class="post-body">
                 {% if post.body_html %}
                     {{ post.body_html | safe }}
                 {% else %}
                     {{ post.body }}
                 {% endif %}
+            </div>
+            <!-- 加博客链接 -->
+            <div class = "post-footer">
+
+
+                {% if current_user.can(Permission.ADMINISTER) %}
+                    <a href="{{ url_for('main.edit_post', id = post.id) }}">
+                        <span class="label label-danger">编辑[管理员]</span>
+                    </a>
+                {% else %}
+                    {% if post.author == current_user %}
+                        <a href="{{ url_for('main.edit_post', id = post.id) }}">
+                            <span class="label label-primary">编辑</span>
+                        </a>
+                    {% endif %}
+                {% endif %}
+
+                <a href="{{ url_for('main.post', id = post.id) }}">
+                    <span class = "label label-default">静态链接</span>
+                </a>
+                
+                <a href="{{ url_for('.post', id = post.id) }}#comments">
+                    <span class = "label label-primary">{{ post.comments.count() }}条评论</span>
+                </a>
+
             </div>
         </div>
     </li>

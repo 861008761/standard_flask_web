@@ -9,16 +9,20 @@ from .. import db
 from ..email import send_email
 from flask.ext.login import current_user
 
-#登入用户
+#用户登录
 @auth.route('/login', methods = ['GET', 'POST'])
 def login():
 	form = LoginForm()
 	if form.validate_on_submit():
 		user = User.query.filter_by(email = form.email.data).first()
-		if user is not None and user.verify_password(form.password.data):
-			login_user(user, form.remember_me.data)
-			return redirect(request.args.get('next') or url_for('main.index'))
-		flash('Invalid email or password')
+		if user is None:
+			flash(u'该邮箱地址尚未注册，请注册之后再登录')
+		else:
+			if user is not None and user.verify_password(form.password.data):
+				login_user(user, form.remember_me.data)
+				return redirect(request.args.get('next') or url_for('main.index'))
+			else:
+				flash(u'密码错误')
 	return render_template('auth/login.html', form = form)
 
 #有一些页面不可以是匿名用户访问的，所以先跳转到登录页面，但是为了实现：在登录之后继续打开
@@ -30,7 +34,7 @@ def login():
 @login_required
 def logout():
 	logout_user()
-	flash('you have been logged out')
+	flash(u'注销登录')
 	return redirect(url_for('main.index'))
 
 @auth.route('/register', methods = ['GET', 'POST'])
@@ -43,8 +47,8 @@ def register():
 		#这里的这句话必须写，原因“注意,即便通过配置,程序已经可以在请求末尾自动提交数据库变化,这里
 		#也要添加 db.session.commit() 调用。问题在于,提交数据库之后才能赋予新用户 id 值,而确认令牌需要用到 id,所以不能延后提交”
 		token = user.generate_confirmation_token()
-		send_email(user.email, 'Confirm your account', 'auth/email/confirm', user = user, token = token)
-		flash('A confirmation email has been sent to your email.')
+		send_email(user.email, u'验证账号', 'auth/email/confirm', user = user, token = token)
+		flash(u'我们已向您的注册邮箱发送了一封确认邮件，请注意查收')
 		return redirect(url_for('main.index'))
 	return render_template('register.html', form = form)
 
@@ -54,9 +58,9 @@ def confirm(token):
 	if current_user.confirmed:#避免重复点击邮件链接的确认
 		return redirect(url_for('main.index'))
 	if current_user.confirm(token):
-		flash('you have just confirmed your account')
+		flash(u'账号验证完成')
 	else:
-		flash('The confirmation link is invalid or has exipred.')
+		flash(u'错误的验证链接或链接已失效')
 	return redirect(url_for('main.index'))
 
 #对一些没有确认的用户进行限制，以及引导其再次确认
@@ -82,8 +86,8 @@ def unconfirmed():
 @login_required
 def resend_confirmation():
 	token = current_user.generate_confirmation_token()
-	send_email(current_user.email, 'Confirm your account', 'auth/email/confirm', user = current_user, token = token)
-	flash('A new confirmation email has been sent to your email')
+	send_email(current_user.email, u'验证账号', 'auth/email/confirm', user = current_user, token = token)
+	flash(u'我们已向您的注册邮箱发送了一封确认邮件，请注意查收')
 	return redirect(url_for('main.index'))
 
 #修改密码
@@ -94,15 +98,15 @@ def modifypwd():
 	if form.validate_on_submit():
 		user = User.query.filter_by(email = current_user.email).first()
 		if not user.verify_password(form.oldpassword.data):
-			flash('Error: you old password is wrong!')
+			flash(u'旧密码输入错误')
 		else:
 			if user.verify_password(form.newpassword.data):
-				flash('new password is the same as last one, please change a new password')
+				flash(u'新旧密码不能相同，请使用其他密码')
 			else:
 				user.password = form.newpassword.data
 				db.session.add(user)
 				db.session.commit()
-				flash('you have changed your password successfully')
+				flash(u'你刚刚修改了密码')
 				return redirect(url_for('main.index'))
 	return render_template('auth/modifypwd.html', form = form)
 
@@ -116,10 +120,10 @@ def resetquest():
 		user = User.query.filter_by(email = form.email.data).first()
 		if user is not None:
 			token = user.generate_confirmation_token()
-			send_email(form.email.data, 'Reset your account', '/auth/email/reset', user = user, token = token)
-			flash('A confirmation email has been sent to your email')
+			send_email(form.email.data, u'重置密码', '/auth/email/reset', user = user, token = token)
+			flash(u'我们已向您的注册邮箱发送了一封重置密码确认邮件，请注意查收')
 		else:
-			flash('your email address have not registered yet')
+			flash(u'该邮箱地址尚未注册！')
 		#return redirect(url_for('main.index'))
 	return render_template('auth/resetquest.html', form = form)
 
@@ -132,16 +136,16 @@ def reset(token):
 	if form.validate_on_submit():
 		user = User.query.filter_by(email = form.email.data).first()
 		if user is None:
-			flash('Your email address is wrong')
+			flash(u'邮箱地址错误')
 		else:
 			if user.confirm(token):
 				user.password = form.password.data
 				db.session.add(user)
 				db.session.commit()
-				flash('your have already reset your password')
+				flash(u'你刚刚重置了密码')
 				return redirect(url_for('auth.login'))
 			else:
-				flash('your link is invalid or expired')
+				flash(u'错误的验证链接或链接已失效')
 			#return redirect(url_for('main.index'))
 	return render_template('auth/resetquest.html', form = form)
 
@@ -153,14 +157,14 @@ def changeemail():
 	if form.validate_on_submit():
 		user = User.query.filter_by(email = current_user.email).first()
 		if User.query.filter_by(email = form.newemail.data).first():
-			flash('this email address already registered, please use another one')
+			flash(u'该邮箱地址已被注册，请换用其他邮箱')
 		else:
 			if user.verify_password(form.password.data):
 				token = user.generate_confirmationwithaddress_token(address = form.newemail.data)
-				send_email(form.newemail.data, 'Confirm your new email address', '/auth/email/changeemail', user = user, token = token)
-				flash('A confirmation email has been sent to your new email address!')
+				send_email(form.newemail.data, u'验证新的邮箱地址', '/auth/email/changeemail', user = user, token = token)
+				flash(u'我们已向您的注册邮箱发送了一封重置邮箱确认邮件，请注意查收')
 			else:
-				flash('Invalid password')
+				flash(u'密码错误')
 	return render_template('auth/changeemail.html', form = form)
 
 @auth.route('/newemail/<token>')
@@ -168,9 +172,9 @@ def changeemail():
 def newemail(token):
 	user = User.query.filter_by(email = current_user.email).first()
 	if user.confirm_address(token) is False:
-		flash('Confirmation failed')
+		flash(u'验证失败')
 	else:
-		flash('Your email address is changed, please log in with new email address!')
+		flash(u'邮箱地址已更改成功，请使用新的邮箱地址登录')
 		logout_user()
 	return redirect(url_for('auth.login'))
 
@@ -178,7 +182,7 @@ def newemail(token):
 @auth.route('/secret')
 @login_required
 def secret():
-	return 'Only authenicated users are allowed'
+	return u'已授权用户可显示'
 
 
 

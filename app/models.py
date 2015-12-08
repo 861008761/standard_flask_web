@@ -15,6 +15,13 @@ import bleach
 def load_user(user_id):
 	return User.query.get(int(user_id))
 
+#“关注”功能的中间表
+class Follow(db.Model):
+	__tablename__ = 'follows'
+	follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key = True)
+	followed_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key = True)
+	timestamp = db.Column(db.DateTime(), default = datetime.utcnow)
+
 class User(UserMixin, db.Model):
 	__tablename__ = 'users'
 	id = db.Column(db.Integer, primary_key = True)
@@ -30,6 +37,7 @@ class User(UserMixin, db.Model):
 	last_seen = db.Column(db.DateTime(), default = datetime.utcnow)
 	avatar_hash = db.Column(db.String(32))
 	posts = db.relationship('Post', backref = 'author', lazy = 'dynamic')
+	comments = db.relationship('Comment', backref = 'author', lazy = 'dynamic')
 	#初始化用户并赋予权限，如果基类没有进行权限赋值，那么这里进行判断，如果邮箱地址和本地的FLASKY_MAIL_ADMIN相同，则赋值为管理员；否则默认赋值为普通用户
 	def __init__(self, **kwargs):
 		super(User, self).__init__(**kwargs)
@@ -40,6 +48,7 @@ class User(UserMixin, db.Model):
 				self.role = Role.query.filter_by(default = True).first()
 		if self.email is not None and self.avatar_hash is None:
 			self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+		self.follow(self)
 
 	def __repr__(self):
 		return '<user %s>' % self.username
@@ -85,7 +94,7 @@ class User(UserMixin, db.Model):
 		if self.query.filter_by(email = address).first() is not None:
 			return False
 		self.email = address
-		self.avatar_hash = hashlib.md5(address.encode('utf-8')).hexdigest()
+		self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
 		db.session.add(self)
 		db.session.commit()
 		return True
@@ -129,10 +138,65 @@ class User(UserMixin, db.Model):
 			db.session.add(u)
 			try:
 				db.session.commit()
-			except:
+			except IntegrityError:
 				db.session.rollback()
 
- 
+	#关注者与被关注者数据库关系
+	followed = db.relationship('Follow',
+							   foreign_keys = [Follow.follower_id], 
+							   backref = db.backref('follower', lazy = 'joined'), 
+							   lazy = 'dynamic', 
+							   cascade = 'all, delete-orphan'
+							  )
+	followers = db.relationship('Follow', 
+							   foreign_keys = [Follow.followed_id], 
+							   backref = db.backref('followed', lazy = 'joined'), 
+							   lazy = 'dynamic', 
+							   cascade = 'all, delete-orphan'
+							  )
+ 	
+	#关注
+	def follow(self, user):
+		if not self.is_following(user):
+			f = Follow(follower = self, followed = user)
+			db.session.add(f)
+			return True
+	#取消关注
+	def unfollow(self, user):
+		f = self.followed.filter_by(followed_id = user.id).first()
+		if f:
+			db.session.delete(f)
+	#是否关注
+	def is_following(self, user):
+		f = self.followed.filter_by(followed_id = user.id).first()
+		if f:
+			return True
+		else:
+			return False
+	#是否被关注
+	def is_followed_by(self, user):
+		#f = user.followed.filter_by(followed_id = self.id).first()
+		f = self.followers.filter_by(follower_id = user.id).first()
+		if f:
+			return True
+		else:
+			return False
+
+	#把用户设置为自己的关注者
+	@staticmethod
+	def add_self_follow():
+		for user in User.query.all():
+			if not user.is_following(user):
+				user.follow(user)
+				db.session.add(user)
+				db.session.commit()
+
+	#获取关注者关注对象的文章
+	@property
+	def followed_posts(self):
+		return Post.query.join(Follow, Follow.followed_id == Post.author_id).filter(Follow.follower_id == self.id)
+
+
 class Role(db.Model):
 	__tablename__ = 'roles'
 	id = db.Column(db.Integer, primary_key = True)
@@ -168,7 +232,7 @@ class Post(db.Model):
 	timestamp = db.Column(db.DateTime(), index = True, default = datetime.utcnow)
 	author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 	body_html = db.Column(db.Text())
-
+	comments = db.relationship('Comment', backref = 'post', lazy = 'dynamic')
 	#把markdown文本转换成html文本
 	@staticmethod
 	def on_changed_body(target, value, oldvalue, initiator):
@@ -195,7 +259,29 @@ class Post(db.Model):
 			db.session.add(post)
 			db.session.commit()
 
+#db数据库注册监听事件，一旦body改变，则执行 on_changed_body 方法
 db.event.listen(Post.body, 'set', Post.on_changed_body)
+
+
+#评论模型
+class Comment(db.Model):
+	__tablename__ = 'comments'
+	id = db.Column(db.Integer, primary_key = True)
+	body = db.Column(db.Text())
+	body_html = db.Column(db.Text())
+	timestamp = db.Column(db.DateTime(), index = True, default = datetime.utcnow)
+	disabled = db.Column(db.Boolean)
+	author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+	post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+
+	@staticmethod
+	def on_changed_body(target, value, oldvalue, initiator):
+		allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code', 
+						'em', 'i', 'strong'
+						]
+		target.body_html = bleach.linkify(bleach.clean(markdown(value, output_format = 'html'), tags = allowed_tags, strip = True))
+
+db.event.listen(Comment.body, 'set', Comment.on_changed_body)
 
 class Permission:
 	FOLLOW = 0x01

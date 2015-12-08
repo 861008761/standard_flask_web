@@ -32,7 +32,6 @@ def create_app(config_name):
 	from .main import main as main_blueprint
 	from .auth import auth as auth_blueprint
 	app.register_blueprint(main_blueprint)
-	app.register_blueprint(auth_blueprint)
+	app.register_blueprint(auth_blueprint, url_prefix = '/auth')
 	#附加路由和自定义的错误页面
-	print 'app/init'#create_app是系统运行时manage.py文件调用的
 	return app
