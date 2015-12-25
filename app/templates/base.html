@@ -7,6 +7,8 @@
 <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+{% block styles %}{% endblock %}
 {% endblock %}
 
 {% block navbar %}
@@ -33,7 +35,11 @@
                     {% endif %}
                     <li class = "dropdown">
                         <a href="#" class = "dropdown-toggle" data-toggle = "dropdown">
-                            <img src="{{ current_user.gravatar(size=20) }}">账号信息<b class = "caret"></b></a>
+                        {% if current_user.image_url %}
+                            <img src="{{ current_user.getImage_url() }}" width="20px" height="20px">
+                        {% else %}
+                            <img src="{{ current_user.gravatar(size=20) }}">
+                        {% endif %}账号信息<b class = "caret"></b></a>
                             <ul class = "dropdown-menu">
                                 <li><a href="{{ url_for('main.user', username = current_user.username) }}">个人信息</a></li>
                                 <li><a href="{{ url_for('auth.modifypwd') }}">密码重置</a></li>

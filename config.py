@@ -17,6 +17,12 @@ class Config:
 	FLASKY_MAIL_ADMIN = os.environ.get('FLASKY_ADMIN') or '861008761@qq.com'
 	FALSKY_POSTS_PER_PAGE = 20
 	FLASKY_COMMENTS_PER_PAGE = 10
+	#设置图片存储位置
+	UPLOAD_FOLDER = '/Users/YCFile/api_web.bak/app/static/uploads'
+	BASEDIR = os.path.abspath(os.path.dirname(__file__))
+	APPDIR = os.path.join(BASEDIR, 'app')
+	STATICDIR = os.path.join(APPDIR, 'static')
+	UPLOADDIR = os.path.join(STATICDIR, 'upload')
 	@staticmethod
 	def init_app(app):
 		pass

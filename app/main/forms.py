@@ -6,6 +6,8 @@ from ..models import Role, User
 from wtforms import ValidationError
 from flask.ext.pagedown.fields import PageDownField
 
+from flask_wtf.file import FileField, FileAllowed, FileRequired
+
 class NameForm(Form):
 	name = StringField(u'姓名?', validators = [Required(u'不能为空')])
 	submit = SubmitField(u'提交')
@@ -51,11 +53,17 @@ class CommentForm(Form):
 	submit = SubmitField(u'发送')
 
 
+class AvatarForm(Form):
+    avatar_url = FileField(u'头像图片', validators=[
+        FileRequired(),
+        FileAllowed(['jpg', 'jpeg', 'png'], u'只能上传jpg, jpeg, png格式的图片')])
 
-
-
-
-
+    x1 = StringField(u'x1')
+    y1 = StringField(u'y1')
+    x2 = StringField(u'x2')
+    y2 = StringField(u'y2')
+    w = StringField(u'w')
+    h = StringField(u'h')
 
 
 

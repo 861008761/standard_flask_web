@@ -6,7 +6,12 @@
 {% block page_content %}
 	<div class="page-header">
 		<h1>{{ user.username }}</h1>
-		<img class="img-rounded profile-thumbnail" src="{{ user.gravatar(size=256) }}">
+		<!-- <img class="img-rounded profile-thumbnail" src="{{ user.gravatar(size=256) }}"> -->
+		{% if user.image_url %}
+                <img class="img-rounded profile-thumbnail" src="{{ user.getImage_url() }}" width="150px" height="150px">
+        {% else %}
+                <img class="img-rounded profile-thumbnail" src="{{ user.gravatar(size=40) }}">
+        {% endif %}
 		<div class = "profile-header">
 			
 			{% if user.name or user.location %}
@@ -55,7 +60,9 @@
 
 
 	        {% if user == current_user %}
-				<a  href="{{ url_for('.edit_profile') }}">点我编辑个人资料^_^ </a>
+	        	</br>
+				<a  href="{{ url_for('.edit_profile') }}">点我编辑个人资料^_^ </a></br>
+				<a  href="{{ url_for('.avatar') }}">点我修改头像^_^ </a>
 			{% endif %}
 
 			<br>

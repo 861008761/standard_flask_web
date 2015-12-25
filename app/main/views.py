@@ -2,12 +2,17 @@
 from flask import render_template, redirect, url_for, current_app, abort, request, make_response
 from flask import flash
 from . import main
-from .forms import EditProfileForm, EditProfileAdminForm, PostForm, CommentForm
+from .forms import EditProfileForm, EditProfileAdminForm, PostForm, CommentForm, AvatarForm
 from .. import db
 from ..models import User, Role, Post, Comment
 from ..decorators import admin_required, permission_required
 from ..models import Permission
 from flask.ext.login import login_required, current_user
+from werkzeug import secure_filename
+
+import os
+from PIL import Image
+from .utils import mkdir, mkdirbysize, mkdirbydate, safefilename, thumbnail, logger
 
 @main.route('/all')
 @login_required
@@ -223,6 +228,49 @@ def moderate_enable(id):
 	flash(u'评论已恢复')
 	return redirect(url_for('.moderate', page = request.args.get('page', 1, type = int)))
 
+#上传头像
+UPLOAD_FOLDER = '/uploads'
+ALLOWED_EXTENSIONS = set(['txt','pdf','png','jpg','jpeg','gif'])
+def allowed_file(filename):
+	return '.' in filename and filename.rsplit('.',1)[1] in ALLOWED_EXTENSIONS
+
+@main.route('/upload', methods = ['GET', 'POST'])
+@login_required
+def upload():
+	if request.method == 'POST':
+		file = request.files['file']
+		if file and allowed_file(file.filename):
+			import os
+			filename = secure_filename(file.filename)
+			filename = current_user.getUserName() + '_' + filename
+			# print current_user.getUserName
+			filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+			print filepath
+			current_user.setImage_url(filepath)
+			file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+			return redirect(url_for('.uploaded_file', filename = filename))
+	return render_template('uploadimage.html')
+
+#查看已上传
+from flask import send_from_directory
+@login_required
+@main.route('/uploaded_file/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+
+# from .forms import PhotoForm
+# import os
+# @main.route('/upload', methods = ['GET', 'POST'])
+# def upload():
+#     form = PhotoForm()
+#     if form.validate_on_submit():
+#         filename = secure_filename(form.photo.data.filename)
+#         file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+#     else:
+#         filename = None
+#     return render_template('upload.html', form = form, filename = filename)
+
+
 
 #验证角色修饰器
 @main.route('/admin')
@@ -239,7 +287,52 @@ def modorator():
 
 
 
+@main.route('/avatar', methods=['GET', 'POST'])
+@login_required
+def avatar():
+    form = AvatarForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            safe_filename = safefilename(form.avatar_url.data.filename)
 
+            # create directory
+            upload_url = mkdir(current_app.config['UPLOADDIR'])
+            avatar_path = mkdir(os.path.join(upload_url, 'avatar'))
+            size150_path = mkdirbysize(avatar_path, size=150)
+            date150_path, date_dir = mkdirbydate(size150_path)
+
+            # avatar_url_sql = os.path.join(date_dir, safe_filename)
+
+            im = rim = crop150 = None
+            try:
+                im = Image.open(form.avatar_url.data)
+                width, height = im.size
+                nwidth, nheight = thumbnail(width, height, 500.0)
+                rim = im.resize((nwidth, nheight), Image.ANTIALIAS)
+                logger.info('picture {}, {} has been resize to {} {}'.format(width, height, nwidth, nheight))
+
+                size = (int(form.data.get('x1')), int(form.data.get('y1')), int(form.data.get('x2')), int(form.data.get('y2')))
+                crop150 = rim.crop(size).resize((150, 150), Image.ANTIALIAS)
+                logger.info('picture has been crop')
+
+                crop150.save(os.path.join(date150_path, safe_filename))
+                logger.info('picture has upload successful')
+                flash(u'上传头像成功', category='success')
+                filepath2 = os.path.join(date150_path, safe_filename)
+                current_user.setImage_url(filepath2)
+                return redirect('.')
+            except:
+                logger.error('picture crop and save error')
+                flash(u'上传头像失败', category='error')
+            finally:
+                if crop150:
+                    crop150.close()
+                if rim:
+                    rim.close()
+                if im:
+                    im.close()
+    template_name_or_list = 'uploadimage.html'
+    return render_template(**locals())
 
 
 
