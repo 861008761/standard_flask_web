@@ -71,7 +71,7 @@ def post(id):
 		flash(u'尚未登录')
 	if form.validate_on_submit():
 		if current_user.can(Permission.COMMENT):
-			comment = Comment(body = form.body.data, post = post, author = current_user._get_current_object())
+			comment = Comment(body = form.body.data, post = post, author = current_user._get_current_object(), disabled = False)
 			db.session.add(comment)
 			flash(u'新的评论')
 			return redirect(url_for('.post', id = post.id, page = -1))
